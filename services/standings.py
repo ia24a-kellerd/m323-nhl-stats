@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from dataclasses import replace
+from functools import reduce
+from types import MappingProxyType
 from typing import Literal
 
-from models import Game
+from models import POINTS, Game, TeamRecord
 
 Result = Literal["W", "L", "OTL"]
+StandingsRow = Mapping[str, int | str]
 
-POINTS: dict[str, int] = {"W": 2, "OTL": 1, "L": 0}
+RESULT_FIELDS: dict[str, str] = {"W": "w", "L": "l", "OTL": "otl"}
 
 
 def teams_in(games: Iterable[Game]) -> tuple[str, ...]:
@@ -46,34 +50,54 @@ def points_for(result: Result) -> int:
     return POINTS[result]
 
 
-def calculate_standings(games: list[Game]) -> list[dict[str, int | str]]:
-    """Calculate standings by looping over teams and their games."""
-    records: list[dict[str, int | str]] = []
+def add_game(record: TeamRecord, game: Game, team: str) -> TeamRecord:
+    """Return a new record with the game added; the given record is not changed."""
+    result_field = RESULT_FIELDS[result_for_team(game, team)]
+    goals_for, goals_against = goals_for_and_against(game, team)
+    return replace(
+        record,
+        gp=record.gp + 1,
+        gf=record.gf + goals_for,
+        ga=record.ga + goals_against,
+        **{result_field: getattr(record, result_field) + 1},
+    )
 
-    for team in teams_in(games):
-        record: dict[str, int | str] = {
+
+def team_record(games: Iterable[Game], team: str) -> TeamRecord:
+    """Fold all games of the team into one TeamRecord with reduce."""
+    return reduce(
+        lambda record, game: add_game(record, game, team),
+        games_of_team(games, team),
+        TeamRecord(),
+    )
+
+
+def ranking_key(entry: tuple[str, TeamRecord]) -> tuple[int, int, int]:
+    """Sort key: points, then goal difference, then goals for."""
+    _, record = entry
+    return record.pts, record.diff, record.gf
+
+
+def to_row(team: str, record: TeamRecord) -> StandingsRow:
+    """Convert a TeamRecord into a read-only row for the template."""
+    return MappingProxyType(
+        {
             "TEAM": team,
-            "GP": 0,
-            "W": 0,
-            "L": 0,
-            "OTL": 0,
-            "PTS": 0,
-            "GF": 0,
-            "GA": 0,
-            "DIFF": 0,
+            "GP": record.gp,
+            "W": record.w,
+            "L": record.l,
+            "OTL": record.otl,
+            "PTS": record.pts,
+            "GF": record.gf,
+            "GA": record.ga,
+            "DIFF": record.diff,
         }
+    )
 
-        for game in games_of_team(games, team):
-            result = result_for_team(game, team)
-            goals_for, goals_against = goals_for_and_against(game, team)
 
-            record["GP"] += 1
-            record[result] += 1
-            record["PTS"] += points_for(result)
-            record["GF"] += goals_for
-            record["GA"] += goals_against
-
-        record["DIFF"] = record["GF"] - record["GA"]
-        records.append(record)
-
-    return sorted(records, key=lambda row: (row["PTS"], row["DIFF"], row["GF"]), reverse=True)
+def calculate_standings(games: Iterable[Game]) -> tuple[StandingsRow, ...]:
+    """Calculate the standings sorted by points, goal difference and goals for."""
+    games = tuple(games)
+    entries = map(lambda team: (team, team_record(games, team)), teams_in(games))
+    ranked = sorted(entries, key=ranking_key, reverse=True)
+    return tuple(map(lambda entry: to_row(*entry), ranked))

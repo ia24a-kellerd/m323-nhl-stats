@@ -1,14 +1,17 @@
+from dataclasses import FrozenInstanceError
 from datetime import date
 
 import pytest
 
-from models import Game
+from models import Game, TeamRecord
 from services.standings import (
+    add_game,
     calculate_standings,
     games_of_team,
     goals_for_and_against,
     points_for,
     result_for_team,
+    team_record,
     teams_in,
 )
 
@@ -80,3 +83,38 @@ def test_points_for():
     assert points_for("W") == 2
     assert points_for("OTL") == 1
     assert points_for("L") == 0
+
+
+def test_team_record_computes_points_and_diff():
+    record = TeamRecord(gp=4, w=2, l=1, otl=1, gf=10, ga=12)
+
+    assert record.pts == 5
+    assert record.diff == -2
+
+
+def test_team_record_is_immutable():
+    with pytest.raises(FrozenInstanceError):
+        TeamRecord().w = 1
+
+
+def test_add_game_returns_new_record_and_keeps_old_one():
+    empty = TeamRecord()
+
+    updated = add_game(empty, AWAY_WIN_OT, "BOS")
+
+    assert updated == TeamRecord(gp=1, otl=1, gf=2, ga=3)
+    assert empty == TeamRecord()
+
+
+def test_team_record_reduces_all_games_of_team():
+    games = [HOME_WIN_REG, AWAY_WIN_OT, HOME_WIN_SO]
+
+    assert team_record(games, "TOR") == TeamRecord(gp=2, w=2, gf=7, ga=4)
+    assert team_record(games, "NYR") == TeamRecord()
+
+
+def test_standings_rows_are_read_only():
+    row = calculate_standings([HOME_WIN_REG])[0]
+
+    with pytest.raises(TypeError):
+        row["PTS"] = 99
