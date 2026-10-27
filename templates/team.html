@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ stats.team }}{% endblock %}
+{% block content %}
+<h1>{{ stats.team }}</h1>
+<p>Games played: {{ stats.games_played }}</p>
+
+<table>
+  <tbody>
+    <tr><th>Home record (W-L-OTL)</th><td>{{ format_record(stats.home_record) }}</td></tr>
+    <tr><th>Away record (W-L-OTL)</th><td>{{ format_record(stats.away_record) }}</td></tr>
+    <tr><th>Goals for per game</th><td>{{ "%.2f"|format(stats.avg_goals_for) }}</td></tr>
+    <tr><th>Goals against per game</th><td>{{ "%.2f"|format(stats.avg_goals_against) }}</td></tr>
+    <tr>
+      <th>Highest-scoring game</th>
+      <td>
+        {% set game = stats.highest_scoring_game %}
+        {% if game %}
+        {{ game.date }}: {{ game.home_team }} {{ game.home_goals }} - {{ game.away_goals }} {{ game.away_team }} ({{ game.result_type }})
+        {% else %}
+        -
+        {% endif %}
+      </td>
+    </tr>
+    <tr><th>Longest winning streak</th><td>{{ stats.longest_win_streak }}</td></tr>
+  </tbody>
+</table>
+
+<p><a href="{{ url_for('standings.standings') }}">Back to standings</a></p>
+{% endblock %}

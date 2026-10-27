@@ -40,3 +40,17 @@ class TeamRecord:
     def diff(self) -> int:
         """Goal difference (goals for minus goals against)."""
         return self.gf - self.ga
+
+
+@dataclass(frozen=True)
+class TeamStats:
+    """Statistics of one team for the team page."""
+
+    team: str
+    games_played: int
+    home_record: TeamRecord
+    away_record: TeamRecord
+    avg_goals_for: float
+    avg_goals_against: float
+    highest_scoring_game: Game | None
+    longest_win_streak: int

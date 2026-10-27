@@ -13,7 +13,7 @@
   <tbody>
   {% for row in standings %}
     <tr>
-      <td>{{ row.TEAM }}</td>
+      <td><a href="{{ url_for('teams.team_page', abbr=row.TEAM) }}">{{ row.TEAM }}</a></td>
       <td>{{ row.GP }}</td>
       <td>{{ row.W }}</td>
       <td>{{ row.L }}</td>
