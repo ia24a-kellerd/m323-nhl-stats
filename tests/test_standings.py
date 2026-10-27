@@ -11,6 +11,7 @@ from services.standings import (
     goals_for_and_against,
     points_for,
     result_for_team,
+    standings_sort_key,
     team_record,
     teams_in,
 )
@@ -118,3 +119,57 @@ def test_standings_rows_are_read_only():
 
     with pytest.raises(TypeError):
         row["PTS"] = 99
+
+
+def row(team, pts, w, diff, gf):
+    """Build a minimal standings row for sort key tests."""
+    return {"TEAM": team, "PTS": pts, "W": w, "DIFF": diff, "GF": gf}
+
+
+def sort_teams(rows):
+    return [r["TEAM"] for r in sorted(rows, key=standings_sort_key)]
+
+
+def test_sort_by_points_first():
+    assert sort_teams([row("AAA", 10, 9, 9, 9), row("BBB", 12, 1, -5, 1)]) == ["BBB", "AAA"]
+
+
+def test_tied_points_more_wins_first():
+    # BBB has more goal difference, but AAA wins the tiebreaker on wins
+    assert sort_teams([row("BBB", 10, 4, 8, 20), row("AAA", 10, 5, 0, 10)]) == ["AAA", "BBB"]
+
+
+def test_tied_points_and_wins_better_goal_difference_first():
+    assert sort_teams([row("AAA", 10, 5, -1, 30), row("BBB", 10, 5, 3, 10)]) == ["BBB", "AAA"]
+
+
+def test_tied_up_to_goal_difference_more_goals_for_first():
+    assert sort_teams([row("AAA", 10, 5, 2, 12), row("BBB", 10, 5, 2, 15)]) == ["BBB", "AAA"]
+
+
+def test_completely_tied_teams_sorted_alphabetically():
+    assert sort_teams([row("TOR", 10, 5, 2, 12), row("BOS", 10, 5, 2, 12), row("MTL", 10, 5, 2, 12)]) == [
+        "BOS",
+        "MTL",
+        "TOR",
+    ]
+
+
+def test_calculate_standings_breaks_points_tie_by_wins():
+    # TOR: 2 W = 4 PTS (DIFF +2); BOS: 1 W + 2 OTL = 4 PTS (DIFF +7) -> TOR first because of more wins
+    games = [
+        Game(date(2025, 10, 1), "2025-26", "TOR", "MTL", 1, 0, "REG"),
+        Game(date(2025, 10, 2), "2025-26", "TOR", "NYR", 1, 0, "REG"),
+        Game(date(2025, 10, 3), "2025-26", "BOS", "MTL", 9, 0, "REG"),
+        Game(date(2025, 10, 4), "2025-26", "BOS", "NYR", 0, 1, "OT"),
+        Game(date(2025, 10, 5), "2025-26", "BOS", "MTL", 0, 1, "SO"),
+    ]
+
+    standings = calculate_standings(games)
+
+    assert [(r["TEAM"], r["PTS"], r["W"], r["DIFF"]) for r in standings] == [
+        ("TOR", 4, 2, 2),
+        ("BOS", 4, 1, 7),
+        ("NYR", 2, 1, 0),
+        ("MTL", 2, 1, -9),
+    ]

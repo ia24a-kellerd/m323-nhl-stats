@@ -72,12 +72,6 @@ def team_record(games: Iterable[Game], team: str) -> TeamRecord:
     )
 
 
-def ranking_key(entry: tuple[str, TeamRecord]) -> tuple[int, int, int]:
-    """Sort key: points, then goal difference, then goals for."""
-    _, record = entry
-    return record.pts, record.diff, record.gf
-
-
 def to_row(team: str, record: TeamRecord) -> StandingsRow:
     """Convert a TeamRecord into a read-only row for the template."""
     return MappingProxyType(
@@ -95,9 +89,13 @@ def to_row(team: str, record: TeamRecord) -> StandingsRow:
     )
 
 
+def standings_sort_key(record: StandingsRow) -> tuple[int, int, int, int, str]:
+    """NHL-style tiebreakers: points, wins, goal difference, goals for (all desc), team (asc)."""
+    return -record["PTS"], -record["W"], -record["DIFF"], -record["GF"], record["TEAM"]
+
+
 def calculate_standings(games: Iterable[Game]) -> tuple[StandingsRow, ...]:
-    """Calculate the standings sorted by points, goal difference and goals for."""
+    """Calculate the standings sorted with NHL-style tiebreakers."""
     games = tuple(games)
-    entries = map(lambda team: (team, team_record(games, team)), teams_in(games))
-    ranked = sorted(entries, key=ranking_key, reverse=True)
-    return tuple(map(lambda entry: to_row(*entry), ranked))
+    rows = map(lambda team: to_row(team, team_record(games, team)), teams_in(games))
+    return tuple(sorted(rows, key=standings_sort_key))
