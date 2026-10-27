@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Import Games{% endblock %}
+{% block content %}
+<h1>Import CSV</h1>
+<p>Imported games in memory: {{ imported_count }}</p>
+
+<form method="post" enctype="multipart/form-data">
+  <input type="file" name="csv_file" accept=".csv">
+  <button type="submit">Import</button>
+</form>
+
+{% if error_message %}
+<p class="error">{{ error_message }}</p>
+{% endif %}
+
+{% if accepted_count %}
+<p>Accepted rows: {{ accepted_count }}</p>
+{% endif %}
+
+{% if rejected_rows %}
+<h2>Rejected rows</h2>
+<table>
+  <thead>
+    <tr><th>Row</th><th>Error</th></tr>
+  </thead>
+  <tbody>
+  {% for item in rejected_rows %}
+    <tr>
+      <td>{{ item.row_number }}</td>
+      <td>{{ item.error }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}
