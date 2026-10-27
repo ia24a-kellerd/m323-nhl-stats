@@ -3,6 +3,27 @@
 {% block content %}
 <h1>Imported Games</h1>
 
+<form method="get">
+  <label>Team <input type="text" name="team" value="{{ filters.team }}" size="4"></label>
+  <label>Season <input type="text" name="season" value="{{ filters.season }}" size="7"></label>
+  <label>Result
+    <select name="result_type">
+      <option value="">All</option>
+      {% for option in ["REG", "OT", "SO"] %}
+      <option value="{{ option }}" {% if filters.result_type == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>From <input type="date" name="date_from" value="{{ filters.date_from }}"></label>
+  <label>To <input type="date" name="date_to" value="{{ filters.date_to }}"></label>
+  <button type="submit">Filter</button>
+  <a href="{{ url_for('games.list_games') }}">Reset</a>
+</form>
+
+{% if error_message %}
+<p class="error">{{ error_message }}</p>
+{% endif %}
+
 {% if games %}
 <table>
   <thead>
@@ -25,6 +46,6 @@
   </tbody>
 </table>
 {% else %}
-<p>No games imported yet.</p>
+<p>No games found.</p>
 {% endif %}
 {% endblock %}
