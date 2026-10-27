@@ -4,6 +4,7 @@
 <h1>Standings</h1>
 
 {% if standings %}
+<p><a href="{{ url_for('standings.export_csv') }}">Download as CSV</a></p>
 <table>
   <thead>
     <tr>
