@@ -13,21 +13,21 @@
 <p class="error">{{ error_message }}</p>
 {% endif %}
 
-{% if accepted_count %}
-<p>Accepted rows: {{ accepted_count }}</p>
+{% if accepted_count is not none %}
+<p>Accepted rows: {{ accepted_count }}, rejected rows: {{ errors|length }}</p>
 {% endif %}
 
-{% if rejected_rows %}
+{% if errors %}
 <h2>Rejected rows</h2>
 <table>
   <thead>
-    <tr><th>Row</th><th>Error</th></tr>
+    <tr><th>Line</th><th>Reason</th></tr>
   </thead>
   <tbody>
-  {% for item in rejected_rows %}
+  {% for error in errors %}
     <tr>
-      <td>{{ item.row_number }}</td>
-      <td>{{ item.error }}</td>
+      <td>{{ error.line }}</td>
+      <td>{{ error.reason }}</td>
     </tr>
   {% endfor %}
   </tbody>

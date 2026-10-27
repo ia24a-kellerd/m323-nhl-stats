@@ -19,7 +19,7 @@ def to_tuples(standings) -> list[tuple]:
 def test_standings_for_sample_csv():
     games, rejected = import_games_from_csv(SAMPLE_CSV.read_text(encoding="utf-8"))
     assert len(games) == 60
-    assert rejected == []
+    assert rejected == ()
 
     assert to_tuples(calculate_standings(games)) == [
         ("TOR", 15, 8, 0, 7, 23, 47, 46, 1),
