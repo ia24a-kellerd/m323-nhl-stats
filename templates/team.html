@@ -1,29 +1,120 @@
 {% extends "base.html" %}
+{% from "_macros.html" import team_link, result_badge, game_line, signed, pct %}
 {% block title %}{{ stats.team }}{% endblock %}
 {% block content %}
-<h1>{{ stats.team }}</h1>
-<p>Games played: {{ stats.games_played }}</p>
+<div class="page-head">
+  <div>
+    <h1>{{ stats.team }}</h1>
+    <p class="subtitle">
+      {{ stats.games_played }} games ·
+      {{ format_record(stats.record) }} (W-L-OTL) ·
+      {{ stats.record.pts }} points
+    </p>
+  </div>
+  <a href="{{ url_for('standings.standings') }}">&larr; Back to standings</a>
+</div>
 
-<table>
-  <tbody>
-    <tr><th>Home record (W-L-OTL)</th><td>{{ format_record(stats.home_record) }}</td></tr>
-    <tr><th>Away record (W-L-OTL)</th><td>{{ format_record(stats.away_record) }}</td></tr>
-    <tr><th>Goals for per game</th><td>{{ "%.2f"|format(stats.avg_goals_for) }}</td></tr>
-    <tr><th>Goals against per game</th><td>{{ "%.2f"|format(stats.avg_goals_against) }}</td></tr>
-    <tr>
-      <th>Highest-scoring game</th>
-      <td>
-        {% set game = stats.highest_scoring_game %}
-        {% if game %}
-        {{ game.date }}: {{ game.home_team }} {{ game.home_goals }} - {{ game.away_goals }} {{ game.away_team }} ({{ game.result_type }})
-        {% else %}
-        -
-        {% endif %}
-      </td>
-    </tr>
-    <tr><th>Longest winning streak</th><td>{{ stats.longest_win_streak }}</td></tr>
-  </tbody>
-</table>
+<div class="tiles">
+  <div class="tile"><div class="tile-value">{{ stats.record.pts }}</div><div class="tile-label">Points</div></div>
+  <div class="tile"><div class="tile-value">{{ "%.3f"|format(stats.record.pct) }}</div><div class="tile-label">Points %</div></div>
+  <div class="tile"><div class="tile-value">{{ "%.2f"|format(stats.avg_goals_for) }}</div><div class="tile-label">Goals for per game</div></div>
+  <div class="tile"><div class="tile-value">{{ "%.2f"|format(stats.avg_goals_against) }}</div><div class="tile-label">Goals against per game</div></div>
+  <div class="tile"><div class="tile-value">{{ stats.current_streak }}</div><div class="tile-label">Current streak</div></div>
+  <div class="tile">
+    <div class="tile-value form">
+      {% for result in stats.form %}{{ result_badge(result) }}{% else %}-{% endfor %}
+    </div>
+    <div class="tile-label">Last {{ stats.form|length }} games</div>
+  </div>
+</div>
 
-<p><a href="{{ url_for('standings.standings') }}">Back to standings</a></p>
+<div class="grid section">
+  <div class="card">
+    <h2>Records</h2>
+    <table class="kv">
+      <tbody>
+        <tr><th>Home (W-L-OTL)</th><td>{{ format_record(stats.home_record) }}</td></tr>
+        <tr><th>Away (W-L-OTL)</th><td>{{ format_record(stats.away_record) }}</td></tr>
+        <tr><th>OT / SO games (W-L)</th><td>{{ stats.overtime_record.w }}-{{ stats.overtime_record.otl }}</td></tr>
+        <tr><th>One-goal games (W-L-OTL)</th><td>{{ format_record(stats.one_goal_record) }}</td></tr>
+        <tr><th>Goal difference</th><td>{{ signed(stats.record.diff) }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Highlights</h2>
+    <table class="kv">
+      <tbody>
+        <tr><th>Longest winning streak</th><td>{{ stats.longest_win_streak }}</td></tr>
+        <tr><th>Shutouts</th><td>{{ stats.shutouts }}</td></tr>
+        <tr><th>Shut out</th><td>{{ stats.shutout_losses }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Games</h2>
+  <table class="kv">
+    <tbody>
+      <tr><th>Highest-scoring game</th><td>{{ game_line(stats.highest_scoring_game) }}</td></tr>
+      <tr><th>Biggest win</th><td>{{ game_line(stats.biggest_win) }}</td></tr>
+      <tr><th>Biggest loss</th><td>{{ game_line(stats.biggest_loss) }}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% if stats.head_to_head %}
+<div class="card table-wrap">
+  <h2>Head to head</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Opponent</th><th class="num">GP</th><th class="num">W</th><th class="num">L</th><th class="num">OTL</th>
+        <th class="num">PTS</th><th class="num">GF</th><th class="num">GA</th><th class="num">DIFF</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for other, record in stats.head_to_head %}
+      <tr>
+        <td>{{ team_link(other) }}</td>
+        <td class="num">{{ record.gp }}</td>
+        <td class="num">{{ record.w }}</td>
+        <td class="num">{{ record.l }}</td>
+        <td class="num">{{ record.otl }}</td>
+        <td class="num strong">{{ record.pts }}</td>
+        <td class="num">{{ record.gf }}</td>
+        <td class="num">{{ record.ga }}</td>
+        <td class="num">{{ signed(record.diff) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="card table-wrap">
+  <h2>Game log</h2>
+  {% if stats.game_log %}
+  <table>
+    <thead>
+      <tr><th>Date</th><th></th><th>Opponent</th><th class="num">Score</th><th>Result</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for entry in stats.game_log %}
+      <tr>
+        <td>{{ entry.date }}</td>
+        <td class="muted">{{ "vs" if entry.at_home else "@" }}</td>
+        <td>{{ team_link(entry.opponent, false) }}</td>
+        <td class="num">{{ entry.goals_for }} : {{ entry.goals_against }}</td>
+        <td>{{ result_badge(entry.result) }}</td>
+        <td class="muted">{{ entry.result_type if entry.result_type != "REG" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No games for {{ stats.team }}.</p>
+  {% endif %}
+</div>
 {% endblock %}

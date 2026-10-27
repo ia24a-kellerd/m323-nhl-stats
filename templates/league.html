@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "_macros.html" import team_link, game_line, pct %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>League overview</h1>
+    {% if stats.games %}
+    <p class="subtitle">Season {{ stats.seasons|join(", ") }} · {{ stats.first_date }} to {{ stats.last_date }}</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if not stats.games %}
+<div class="card empty">
+  No games loaded yet. Put CSV files into <code>data/games</code> or <a href="{{ url_for('import.import_games') }}">import a file</a>.
+</div>
+{% else %}
+<div class="tiles">
+  <div class="tile"><div class="tile-value">{{ stats.games }}</div><div class="tile-label">Games</div></div>
+  <div class="tile"><div class="tile-value">{{ stats.teams }}</div><div class="tile-label">Teams</div></div>
+  <div class="tile"><div class="tile-value">{{ "%.2f"|format(stats.goals_per_game) }}</div><div class="tile-label">Goals per game</div></div>
+  <div class="tile"><div class="tile-value">{{ pct(stats.home_win_pct) }}</div><div class="tile-label">Home wins</div></div>
+  <div class="tile"><div class="tile-value">{{ pct(stats.ot_pct) }}</div><div class="tile-label">Decided in OT</div></div>
+  <div class="tile"><div class="tile-value">{{ pct(stats.so_pct) }}</div><div class="tile-label">Decided in SO</div></div>
+  <div class="tile"><div class="tile-value">{{ stats.shutouts }}</div><div class="tile-label">Shutouts</div></div>
+</div>
+
+<div class="grid section">
+  <div class="card">
+    <h2>Most points</h2>
+    <table class="list-table">
+      <tbody>
+      {% for team, points in stats.top_points %}
+        <tr><td>{{ loop.index }}</td><td>{{ team_link(team) }}</td><td class="num">{{ points }} PTS</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Best offense</h2>
+    <table class="list-table">
+      <tbody>
+      {% for team, value in stats.top_offense %}
+        <tr><td>{{ loop.index }}</td><td>{{ team_link(team) }}</td><td class="num">{{ "%.2f"|format(value) }} GF/GP</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Best defense</h2>
+    <table class="list-table">
+      <tbody>
+      {% for team, value in stats.top_defense %}
+        <tr><td>{{ loop.index }}</td><td>{{ team_link(team) }}</td><td class="num">{{ "%.2f"|format(value) }} GA/GP</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Longest winning streaks</h2>
+    <table class="list-table">
+      <tbody>
+      {% for team, streak in stats.top_streaks %}
+        <tr><td>{{ loop.index }}</td><td>{{ team_link(team) }}</td><td class="num">{{ streak }} wins</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Records</h2>
+  <table class="kv">
+    <tbody>
+      <tr><th>Highest-scoring game</th><td>{{ game_line(stats.highest_scoring_game) }}</td></tr>
+      <tr><th>Biggest win</th><td>{{ game_line(stats.biggest_win) }}</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

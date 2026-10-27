@@ -96,6 +96,7 @@ def to_row(team: str, record: TeamRecord) -> StandingsRow:
             "GF": record.gf,
             "GA": record.ga,
             "DIFF": record.diff,
+            "PCT": record.pct,
         }
     )
 

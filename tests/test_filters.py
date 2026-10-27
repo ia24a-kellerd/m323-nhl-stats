@@ -8,7 +8,9 @@ from services.filters import (
     by_result_type,
     by_season,
     by_team,
+    filter_options,
     matches_all,
+    newest_first,
 )
 
 GAME = Game(date(2025, 10, 5), "2025-26", "BOS", "TOR", 4, 3, "OT")
@@ -71,3 +73,15 @@ def test_filters_dict_contains_all_factories():
         "result_type": by_result_type,
         "date_range": by_date_range,
     }
+
+
+def test_filter_options_lists_teams_and_seasons_sorted():
+    games = (GAME, Game(date(2024, 10, 5), "2024-25", "MTL", "BOS", 1, 0, "REG"))
+
+    assert filter_options(games) == {"teams": ("BOS", "MTL", "TOR"), "seasons": ("2024-25", "2025-26")}
+
+
+def test_newest_first():
+    older = Game(date(2025, 10, 1), "2025-26", "MTL", "BOS", 1, 0, "REG")
+
+    assert newest_first((older, GAME)) == (GAME, older)

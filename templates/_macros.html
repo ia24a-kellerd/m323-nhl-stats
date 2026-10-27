@@ -1,0 +1,23 @@
+{% macro team_link(team, strong=True) -%}
+<a href="{{ url_for('teams.team_page', abbr=team) }}" class="{{ 'strong' if strong }}">{{ team }}</a>
+{%- endmacro %}
+
+{% macro result_badge(result) -%}
+<span class="badge badge-{{ result }}">{{ result }}</span>
+{%- endmacro %}
+
+{% macro game_line(game) -%}
+{% if game %}
+<span class="muted">{{ game.date }}</span>
+{{ team_link(game.home_team) }} {{ game.home_goals }} : {{ game.away_goals }} {{ team_link(game.away_team) }}
+<span class="badge badge-{{ game.result_type }}">{{ game.result_type }}</span>
+{% else %}-{% endif %}
+{%- endmacro %}
+
+{% macro signed(value) -%}
+<span class="{{ 'pos' if value > 0 else 'neg' if value < 0 }}">{{ '+' if value > 0 }}{{ value }}</span>
+{%- endmacro %}
+
+{% macro pct(value) -%}
+{{ "%.1f"|format(value * 100) }}%
+{%- endmacro %}

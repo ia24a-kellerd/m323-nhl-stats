@@ -1,8 +1,9 @@
-"""Routes for CSV import."""
+"""Routes for CSV import (upload and data folder)."""
 
-from flask import Blueprint, current_app, render_template, request
+from flask import Blueprint, current_app, redirect, render_template, request, url_for
 
 from services.importer import RowError, import_games_from_csv
+from services.loader import load_games_folder
 
 bp = Blueprint("import", __name__, url_prefix="/import")
 
@@ -35,4 +36,16 @@ def import_games():
         accepted_count=accepted_count,
         errors=errors,
         error_message=error_message,
+        games_dir=current_app.config["GAMES_DIR"],
+        folder_imports=current_app.config["FOLDER_IMPORTS"],
     )
+
+
+@bp.post("/reload")
+def reload_folder():
+    """Load the data folder again; replaces all games in memory (uploaded games too)."""
+    games_dir = current_app.config["GAMES_DIR"]
+    games, reports = load_games_folder(games_dir) if games_dir else ((), ())
+    current_app.config["GAMES"] = list(games)
+    current_app.config["FOLDER_IMPORTS"] = reports
+    return redirect(url_for("import.import_games"))

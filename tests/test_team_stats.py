@@ -3,8 +3,16 @@ from datetime import date
 import pytest
 
 from app import create_app
-from models import Game, TeamRecord
+from models import Game, GameLogEntry, TeamRecord
 from services.team_stats import (
+    biggest_loss,
+    biggest_win,
+    count_shutout_losses,
+    count_shutouts,
+    current_streak,
+    form,
+    game_log,
+    head_to_head,
     average,
     away_games,
     format_record,
@@ -97,7 +105,7 @@ def test_team_stats_for_team_without_games():
 
 @pytest.fixture
 def client():
-    app = create_app()
+    app = create_app(games_dir=None)
     app.config["GAMES"] = list(GAMES)
     return app.test_client()
 
@@ -123,3 +131,76 @@ def test_standings_link_to_team_page(client):
     html = client.get("/standings/").get_data(as_text=True)
 
     assert 'href="/teams/TOR"' in html
+
+
+def test_record_and_points_percentage():
+    stats = team_stats(GAMES, "TOR")
+
+    assert stats.record == TeamRecord(gp=7, w=5, l=0, otl=2, gf=24, ga=13)
+    assert stats.record.pts == 12
+    assert stats.record.pct == pytest.approx(12 / 14)
+
+
+def test_form_and_current_streak():
+    assert form(GAMES, "TOR") == ("OTL", "OTL", "W", "W", "W")
+    assert form(GAMES, "TOR", count=2) == ("W", "W")
+    assert current_streak(GAMES, "TOR") == "W3"
+    assert current_streak(GAMES, "NYR") == "L2"
+
+
+def test_overtime_and_one_goal_records():
+    stats = team_stats(GAMES, "TOR")
+
+    assert (stats.overtime_record.w, stats.overtime_record.otl) == (0, 2)
+    assert format_record(stats.one_goal_record) == "1-0-2"
+
+
+def test_shutouts():
+    assert count_shutouts(GAMES, "TOR") == 1
+    assert count_shutout_losses(GAMES, "TOR") == 0
+    assert count_shutout_losses(GAMES, "MTL") == 1
+
+
+def test_biggest_win_and_loss():
+    assert biggest_win(GAMES, "TOR") == G5
+    # G3 and G4 are both lost by one goal -> the earlier one
+    assert biggest_loss(GAMES, "TOR") == G3
+    assert biggest_win(GAMES, "NYR") is None
+
+
+def test_head_to_head():
+    records = dict(head_to_head(GAMES, "TOR"))
+
+    assert list(records) == ["BOS", "MTL", "NYR"]
+    assert records["BOS"] == TeamRecord(gp=2, w=1, otl=1, gf=6, ga=5)
+    assert format_record(records["MTL"]) == "2-0-1"
+
+
+def test_game_log_newest_first_from_team_view():
+    log = game_log(GAMES, "TOR")
+
+    assert len(log) == 7
+    assert log[0] == GameLogEntry(G7.date, "MTL", True, 3, 0, "W", "REG")
+    assert log[-1].date == G1.date
+    assert log[3] == GameLogEntry(G4.date, "MTL", False, 4, 5, "OTL", "SO")
+
+
+def test_new_stats_for_team_without_games():
+    stats = team_stats(GAMES, "EDM")
+
+    assert stats.record == TeamRecord()
+    assert stats.record.pct == 0.0
+    assert stats.current_streak == "-"
+    assert stats.form == ()
+    assert stats.biggest_win is None
+    assert stats.biggest_loss is None
+    assert stats.head_to_head == ()
+    assert stats.game_log == ()
+
+
+def test_team_page_shows_new_stats(client):
+    html = client.get("/teams/TOR").get_data(as_text=True)
+
+    assert "W3" in html
+    assert "Head to head" in html
+    assert "Game log" in html

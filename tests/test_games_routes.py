@@ -15,7 +15,7 @@ GAMES = [
 
 @pytest.fixture
 def client():
-    app = create_app()
+    app = create_app(games_dir=None)
     app.config["GAMES"] = list(GAMES)
     return app.test_client()
 

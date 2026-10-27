@@ -5,16 +5,17 @@ Project rules for Claude Code in this repository.
 ## Context
 
 - This is a school project for module 323 (functional programming) using Flask.
-- The app imports NHL game results from CSV and shows games and standings.
+- The app imports NHL game results from CSV and shows games, standings, team and league statistics.
 
 ## Project structure
 
-- `app.py` – Flask app factory, registers blueprints, keeps imported games in memory (`app.config["GAMES"]`).
-- `models.py` – domain models (`Game` as frozen dataclass).
-- `services/` – business logic (`importer.py`, `standings.py`).
-- `routes/` – Flask blueprints (import, games, standings).
-- `templates/` – Jinja2 templates with a shared `base.html`, plain CSS.
-- `data/sample_games.csv` – sample data for the import.
+- `app.py` – Flask app factory, loads all CSV files of `data/games/`, keeps the games in memory (`app.config["GAMES"]`).
+  `create_app(games_dir=None)` starts with no games (used in tests).
+- `models.py` – immutable domain models (frozen dataclasses).
+- `services/` – business logic (import, loader, filters, standings, team and league stats, export).
+- `routes/` – Flask blueprints (league overview, import, games, standings, teams).
+- `templates/` – Jinja2 templates with a shared `base.html` and `_macros.html`; `static/style.css` (plain CSS).
+- `data/games/` – CSV files loaded at startup; `data/sample_games.csv` – sample data for the upload.
 - `tests/` – pytest tests.
 
 ## Rules

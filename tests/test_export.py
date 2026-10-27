@@ -40,7 +40,7 @@ def test_exported_csv_can_be_read_back():
 
 
 def test_export_route_returns_csv_download():
-    app = create_app()
+    app = create_app(games_dir=None)
     app.config["GAMES"] = list(GAMES)
 
     response = app.test_client().get("/standings/export.csv")
@@ -52,13 +52,13 @@ def test_export_route_returns_csv_download():
 
 
 def test_export_route_without_games_returns_header_only():
-    response = create_app().test_client().get("/standings/export.csv")
+    response = create_app(games_dir=None).test_client().get("/standings/export.csv")
 
     assert response.get_data(as_text=True) == HEADER
 
 
 def test_standings_page_links_to_export():
-    app = create_app()
+    app = create_app(games_dir=None)
     app.config["GAMES"] = list(GAMES)
 
     html = app.test_client().get("/standings/").get_data(as_text=True)

@@ -96,3 +96,15 @@ def matches_all(predicates: Iterable[Predicate]) -> Predicate:
 def filter_games(games: Iterable[Game], params: Mapping[str, object]) -> tuple[Game, ...]:
     """Return the games that match all active filters."""
     return tuple(filter(matches_all(build_predicates(params)), games))
+
+
+def filter_options(games: Iterable[Game]) -> dict[str, tuple[str, ...]]:
+    """Return the teams and seasons that can be selected in the filter form."""
+    games = tuple(games)
+    teams = set(map(lambda game: game.home_team, games)) | set(map(lambda game: game.away_team, games))
+    return {"teams": tuple(sorted(teams)), "seasons": tuple(sorted(set(map(lambda game: game.season, games))))}
+
+
+def newest_first(games: Iterable[Game]) -> tuple[Game, ...]:
+    """Return the games sorted by date, newest first."""
+    return tuple(sorted(games, key=lambda game: game.date, reverse=True))

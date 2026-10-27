@@ -225,3 +225,9 @@ def test_standings_cache_is_not_used_for_changed_games():
 
     assert after is not before
     assert {row["TEAM"]: row["GP"] for row in after}["TOR"] == 2
+
+
+def test_standings_rows_contain_points_percentage():
+    row = calculate_standings([HOME_WIN_REG, AWAY_WIN_OT])[0]
+
+    assert (row["TEAM"], row["PTS"], row["GP"], row["PCT"]) == ("TOR", 4, 2, 1.0)

@@ -3,23 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}NHL Stats{% endblock %}</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; }
-    nav a { margin-right: 1rem; }
-    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-    th, td { border: 1px solid #ccc; padding: 0.4rem; text-align: left; }
-    th { background: #f6f6f6; }
-    .error { color: #b30000; }
-  </style>
+  <title>{% block title %}NHL Stats{% endblock %} · NHL Stats</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <nav>
-    <a href="{{ url_for('import.import_games') }}">Import</a>
-    <a href="{{ url_for('games.list_games') }}">Games</a>
-    <a href="{{ url_for('standings.standings') }}">Standings</a>
-  </nav>
-  <hr>
-  {% block content %}{% endblock %}
+  <header class="site-header">
+    <div class="inner">
+      <a class="brand" href="{{ url_for('league.overview') }}">🏒 NHL Stats</a>
+      <nav class="nav">
+        {% set nav_items = [
+          ("league", "league.overview", "Overview"),
+          ("standings", "standings.standings", "Standings"),
+          ("games", "games.list_games", "Games"),
+          ("import", "import.import_games", "Import"),
+        ] %}
+        {% for blueprint, endpoint, label in nav_items %}
+        <a href="{{ url_for(endpoint) }}" class="{{ 'active' if request.blueprint == blueprint }}">{{ label }}</a>
+        {% endfor %}
+      </nav>
+      <span class="header-info">{{ config.GAMES|length }} games loaded</span>
+    </div>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>Module 323 · Functional programming with Flask</footer>
 </body>
 </html>

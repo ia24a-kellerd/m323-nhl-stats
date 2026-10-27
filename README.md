@@ -6,19 +6,27 @@ Flask app for NHL game results and statistics with CSV import. School project fo
 
 ## Features
 
-- **CSV import** (`/import`): upload a CSV with game results. Every line goes through a composed pipeline
+- **Data folder** (`data/games/`): every `*.csv` file in this folder is loaded at startup (sorted by file name,
+  games that appear in an earlier file are skipped). Add more files and restart the app or click
+  **Reload folder** on the import page. `data/games/games_2025-26.csv` contains the 1312 games of the
+  2025-26 regular season.
+- **League overview** (`/`, start page): games, teams, goals per game, home win rate, share of OT and SO games,
+  shutouts, top 5 in points, offense, defense and winning streaks, highest-scoring game and biggest win.
+- **CSV import** (`/import`): upload a CSV with game results in addition to the data folder. Every line goes through a composed pipeline
   (`read_rows -> parse_row -> validate -> to_game`). Invalid lines are rejected and shown with line number and reason
   (missing columns or values, invalid date, non-numeric or negative goals, tied score, invalid result type,
   OT/SO game not decided by one goal, same team twice, duplicate or already imported game).
-- **Game list with filters** (`/games`): filter by team, season, result type (REG/OT/SO) and date range.
+- **Game list with filters** (`/games`, newest first): filter by team, season, result type (REG/OT/SO) and date range.
   The filters are combined as a declarative predicate pipeline.
-- **Standings** (`/standings`): GP, W, L, OTL, PTS, GF, GA, DIFF per team. Win = 2 points, OT/SO loss = 1,
+- **Standings** (`/standings`): GP, W, L, OTL, PTS, P% (points percentage), GF, GA, DIFF per team. Win = 2 points, OT/SO loss = 1,
   regulation loss = 0. Tiebreakers: points, wins, goal difference, goals for (all descending), then team (A-Z).
-- **Team statistics** (`/teams/<abbr>`, linked from the standings): home and away record, goals for and against
-  per game, highest-scoring game and longest winning streak.
+- **Team statistics** (`/teams/<abbr>`, linked everywhere): points and P%, form of the last 5 games, current and
+  longest winning streak, home/away, OT/SO and one-goal records, goals for and against per game, shutouts,
+  highest-scoring game, biggest win and loss, head-to-head record against every opponent and the full game log.
 - **CSV export** (`/standings/export.csv`): download the current standings.
 
-The imported games are kept in memory only (no database), so they are gone after a restart.
+The games are kept in memory only (no database). After a restart only the files in `data/games/` are loaded again,
+uploaded files are gone.
 
 ## CSV format
 
@@ -57,7 +65,7 @@ pip install -r requirements.txt
 flask --app app:create_app run
 ```
 
-Open http://127.0.0.1:5000, go to **Import** and upload `data/sample_games.csv`.
+or `python app.py`. Open http://127.0.0.1:5000. The games from `data/games/` are already loaded.
 
 ## Tests
 
@@ -80,10 +88,11 @@ The last measured results are in [docs/benchmark.md](docs/benchmark.md).
 ## Project structure
 
 ```
-app.py                  Flask app factory, registers the blueprints
-models.py               immutable domain models: Game, TeamRecord, TeamStats
+app.py                  Flask app factory, loads data/games, registers the blueprints
+models.py               immutable domain models: Game, TeamRecord, TeamStats, GameLogEntry, LeagueStats
 routes/                 Flask blueprints, only HTTP (read request, call service, render template)
-  import_routes.py      /import
+  league_routes.py      / (league overview)
+  import_routes.py      /import, /import/reload
   games_routes.py       /games
   standings_routes.py   /standings, /standings/export.csv
   teams_routes.py       /teams/<abbr>
@@ -92,11 +101,15 @@ services/               business logic as pure functions
   filters.py            predicate factories for the game filters
   standings.py          standings with reduce, index_by_team, lru_cache
   team_stats.py         team statistics with map/filter/reduce
+  league_stats.py       league overview statistics
+  loader.py             loads all CSV files of the data folder
   export.py             standings_to_csv
   functional.py         generic helpers (compose)
   paradigms.py          points of a team in OO, procedural and functional style (comparison only)
-templates/              Jinja2 templates
-data/                   sample_games.csv (large_games.csv is generated and not in git)
+templates/              Jinja2 templates (base layout, macros, one template per page)
+static/style.css        plain CSS, light and dark theme
+data/games/             CSV files loaded at startup (games_2025-26.csv)
+data/                   sample_games.csv for the upload (large_games.csv is generated and not in git)
 scripts/                generate_games.py, benchmark.py
 docs/                   benchmark.md
 tests/                  pytest tests

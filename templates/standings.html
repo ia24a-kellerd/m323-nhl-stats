@@ -1,33 +1,47 @@
 {% extends "base.html" %}
+{% from "_macros.html" import signed %}
 {% block title %}Standings{% endblock %}
 {% block content %}
-<h1>Standings</h1>
+<div class="page-head">
+  <div>
+    <h1>Standings</h1>
+    <p class="subtitle">Win 2 · OT/SO loss 1 · Tiebreakers: points, wins, goal difference, goals for</p>
+  </div>
+  {% if standings %}
+  <a class="button" href="{{ url_for('standings.export_csv') }}">Download as CSV</a>
+  {% endif %}
+</div>
 
 {% if standings %}
-<p><a href="{{ url_for('standings.export_csv') }}">Download as CSV</a></p>
-<table>
-  <thead>
-    <tr>
-      <th>Team</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>PTS</th><th>GF</th><th>GA</th><th>DIFF</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for row in standings %}
-    <tr>
-      <td><a href="{{ url_for('teams.team_page', abbr=row.TEAM) }}">{{ row.TEAM }}</a></td>
-      <td>{{ row.GP }}</td>
-      <td>{{ row.W }}</td>
-      <td>{{ row.L }}</td>
-      <td>{{ row.OTL }}</td>
-      <td>{{ row.PTS }}</td>
-      <td>{{ row.GF }}</td>
-      <td>{{ row.GA }}</td>
-      <td>{{ row.DIFF }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="card table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th class="rank">#</th><th>Team</th><th class="num">GP</th><th class="num">W</th><th class="num">L</th>
+        <th class="num">OTL</th><th class="num">PTS</th><th class="num">P%</th><th class="num">GF</th>
+        <th class="num">GA</th><th class="num">DIFF</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in standings %}
+      <tr>
+        <td class="rank">{{ loop.index }}</td>
+        <td><a href="{{ url_for('teams.team_page', abbr=row.TEAM) }}" class="strong">{{ row.TEAM }}</a></td>
+        <td class="num">{{ row.GP }}</td>
+        <td class="num">{{ row.W }}</td>
+        <td class="num">{{ row.L }}</td>
+        <td class="num">{{ row.OTL }}</td>
+        <td class="num strong">{{ row.PTS }}</td>
+        <td class="num">{{ "%.3f"|format(row.PCT) }}</td>
+        <td class="num">{{ row.GF }}</td>
+        <td class="num">{{ row.GA }}</td>
+        <td class="num">{{ signed(row.DIFF) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% else %}
-<p>No games imported yet.</p>
+<div class="card empty">No games imported yet.</div>
 {% endif %}
 {% endblock %}

@@ -1,51 +1,77 @@
 {% extends "base.html" %}
+{% from "_macros.html" import team_link %}
 {% block title %}Games{% endblock %}
 {% block content %}
-<h1>Imported Games</h1>
+<div class="page-head">
+  <div>
+    <h1>Games</h1>
+    <p class="subtitle">Showing {{ games|length }} of {{ total_count }} games, newest first</p>
+  </div>
+</div>
 
-<form method="get">
-  <label>Team <input type="text" name="team" value="{{ filters.team }}" size="4"></label>
-  <label>Season <input type="text" name="season" value="{{ filters.season }}" size="7"></label>
-  <label>Result
-    <select name="result_type">
-      <option value="">All</option>
-      {% for option in ["REG", "OT", "SO"] %}
-      <option value="{{ option }}" {% if filters.result_type == option %}selected{% endif %}>{{ option }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>From <input type="date" name="date_from" value="{{ filters.date_from }}"></label>
-  <label>To <input type="date" name="date_to" value="{{ filters.date_to }}"></label>
-  <button type="submit">Filter</button>
-  <a href="{{ url_for('games.list_games') }}">Reset</a>
-</form>
+<div class="card">
+  <form method="get" class="filters">
+    <label>Team
+      <select name="team">
+        <option value="">All teams</option>
+        {% for team in options.teams %}
+        <option value="{{ team }}" {% if filters.team == team %}selected{% endif %}>{{ team }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Season
+      <select name="season">
+        <option value="">All seasons</option>
+        {% for season in options.seasons %}
+        <option value="{{ season }}" {% if filters.season == season %}selected{% endif %}>{{ season }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Result
+      <select name="result_type">
+        <option value="">All</option>
+        {% for option in ["REG", "OT", "SO"] %}
+        <option value="{{ option }}" {% if filters.result_type == option %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>From <input type="date" name="date_from" value="{{ filters.date_from }}"></label>
+    <label>To <input type="date" name="date_to" value="{{ filters.date_to }}"></label>
+    <div class="actions">
+      <button type="submit">Filter</button>
+      <a href="{{ url_for('games.list_games') }}">Reset</a>
+    </div>
+  </form>
+</div>
 
 {% if error_message %}
-<p class="error">{{ error_message }}</p>
+<p class="message message-error">{{ error_message }}</p>
 {% endif %}
 
 {% if games %}
-<table>
-  <thead>
-    <tr>
-      <th>Date</th><th>Season</th><th>Home</th><th>Away</th><th>Home Goals</th><th>Away Goals</th><th>Result</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for game in games %}
-    <tr>
-      <td>{{ game.date }}</td>
-      <td>{{ game.season }}</td>
-      <td>{{ game.home_team }}</td>
-      <td>{{ game.away_team }}</td>
-      <td>{{ game.home_goals }}</td>
-      <td>{{ game.away_goals }}</td>
-      <td>{{ game.result_type }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="card table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th><th>Season</th><th>Home</th><th class="num">Score</th><th>Away</th><th>Result</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for game in games %}
+      {% set home_won = game.home_goals > game.away_goals %}
+      <tr>
+        <td>{{ game.date }}</td>
+        <td class="muted">{{ game.season }}</td>
+        <td>{{ team_link(game.home_team, home_won) }}</td>
+        <td class="num"><span class="{{ 'strong' if home_won }}">{{ game.home_goals }}</span> : <span class="{{ 'strong' if not home_won }}">{{ game.away_goals }}</span></td>
+        <td>{{ team_link(game.away_team, not home_won) }}</td>
+        <td><span class="badge badge-{{ game.result_type }}">{{ game.result_type }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% else %}
-<p>No games found.</p>
+<div class="card empty">No games found.</div>
 {% endif %}
 {% endblock %}

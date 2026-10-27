@@ -1,36 +1,85 @@
 {% extends "base.html" %}
-{% block title %}Import Games{% endblock %}
+{% block title %}Import{% endblock %}
 {% block content %}
-<h1>Import CSV</h1>
-<p>Imported games in memory: {{ imported_count }}</p>
+<div class="page-head">
+  <div>
+    <h1>Import</h1>
+    <p class="subtitle">Games in memory: {{ imported_count }}</p>
+  </div>
+</div>
 
-<form method="post" enctype="multipart/form-data">
-  <input type="file" name="csv_file" accept=".csv">
-  <button type="submit">Import</button>
-</form>
+<div class="grid section">
+  <div class="card">
+    <h2>Upload a CSV file</h2>
+    <p class="muted">Adds the games to the games in memory. Games that are already loaded are skipped.</p>
+    <form method="post" enctype="multipart/form-data" class="actions">
+      <input type="file" name="csv_file" accept=".csv">
+      <button type="submit">Import</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Data folder</h2>
+    {% if games_dir %}
+    <p class="muted">All <code>*.csv</code> files in <code>{{ games_dir.name }}/</code> are loaded at startup.
+      Put new files there and reload.</p>
+    <form method="post" action="{{ url_for('import.reload_folder') }}" class="actions">
+      <button type="submit" class="button-secondary">Reload folder</button>
+      <span class="muted">replaces all games in memory, uploaded games too</span>
+    </form>
+    {% else %}
+    <p class="muted">No data folder configured.</p>
+    {% endif %}
+  </div>
+</div>
 
 {% if error_message %}
-<p class="error">{{ error_message }}</p>
+<p class="message message-error">{{ error_message }}</p>
 {% endif %}
 
 {% if accepted_count is not none %}
-<p>Accepted rows: {{ accepted_count }}, rejected rows: {{ errors|length }}</p>
+<p class="message {{ 'message-success' if not errors else 'message-error' }}">Accepted rows: {{ accepted_count }}, rejected rows: {{ errors|length }}</p>
 {% endif %}
 
 {% if errors %}
-<h2>Rejected rows</h2>
-<table>
-  <thead>
-    <tr><th>Line</th><th>Reason</th></tr>
-  </thead>
-  <tbody>
-  {% for error in errors %}
-    <tr>
-      <td>{{ error.line }}</td>
-      <td>{{ error.reason }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="card table-wrap">
+  <h2>Rejected rows</h2>
+  <table>
+    <thead>
+      <tr><th>Line</th><th>Reason</th></tr>
+    </thead>
+    <tbody>
+    {% for error in errors %}
+      <tr>
+        <td>{{ error.line }}</td>
+        <td>{{ error.reason }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if folder_imports %}
+<div class="card table-wrap">
+  <h2>Files loaded from the data folder</h2>
+  <table>
+    <thead>
+      <tr><th>File</th><th class="num">Games</th><th class="num">Rejected</th><th>First problems</th></tr>
+    </thead>
+    <tbody>
+    {% for file in folder_imports %}
+      <tr>
+        <td>{{ file.name }}</td>
+        <td class="num">{{ file.accepted }}</td>
+        <td class="num">{{ file.errors|length }}</td>
+        <td class="muted">
+          {% for error in file.errors[:3] %}line {{ error.line }}: {{ error.reason }}{% if not loop.last %}; {% endif %}{% endfor %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endif %}
 {% endblock %}

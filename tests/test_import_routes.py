@@ -18,7 +18,7 @@ def post_csv(app, content: bytes):
 
 
 def test_import_accepts_utf8_file_with_bom():
-    app = create_app()
+    app = create_app(games_dir=None)
 
     response = post_csv(app, CSV_TEXT.encode("utf-8-sig"))
 
@@ -27,7 +27,7 @@ def test_import_accepts_utf8_file_with_bom():
 
 
 def test_import_shows_error_for_non_utf8_file():
-    app = create_app()
+    app = create_app(games_dir=None)
 
     response = post_csv(app, b"\xff\xfe invalid")
 
@@ -37,7 +37,7 @@ def test_import_shows_error_for_non_utf8_file():
 
 
 def test_import_page_shows_errors_per_line():
-    app = create_app()
+    app = create_app(games_dir=None)
     content = CSV_TEXT + "2025-10-02,2025-26,BOS,TOR,3,3,REG\n"
 
     html = post_csv(app, content.encode("utf-8")).get_data(as_text=True)
@@ -48,7 +48,7 @@ def test_import_page_shows_errors_per_line():
 
 
 def test_importing_same_file_twice_does_not_duplicate_games():
-    app = create_app()
+    app = create_app(games_dir=None)
 
     post_csv(app, CSV_TEXT.encode("utf-8"))
     html = post_csv(app, CSV_TEXT.encode("utf-8")).get_data(as_text=True)
