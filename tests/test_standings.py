@@ -9,8 +9,10 @@ from services.standings import (
     calculate_standings,
     games_of_team,
     goals_for_and_against,
+    index_by_team,
     points_for,
     result_for_team,
+    standings_for,
     standings_sort_key,
     team_record,
     teams_in,
@@ -173,3 +175,53 @@ def test_calculate_standings_breaks_points_tie_by_wins():
         ("NYR", 2, 1, 0),
         ("MTL", 2, 1, -9),
     ]
+
+
+def test_index_by_team_groups_home_and_away_games_in_order():
+    games = [HOME_WIN_REG, AWAY_WIN_OT, HOME_WIN_SO]
+
+    assert index_by_team(games) == {
+        "TOR": (HOME_WIN_REG, AWAY_WIN_OT),
+        "MTL": (HOME_WIN_REG, HOME_WIN_SO),
+        "BOS": (AWAY_WIN_OT, HOME_WIN_SO),
+    }
+
+
+def test_index_by_team_matches_linear_scan_for_every_team():
+    games = [HOME_WIN_REG, AWAY_WIN_OT, HOME_WIN_SO]
+    index = index_by_team(games)
+
+    assert tuple(index) == teams_in(games)
+    assert all(index[team] == games_of_team(games, team) for team in teams_in(games))
+
+
+def test_index_by_team_empty():
+    assert index_by_team([]) == {}
+
+
+def test_index_by_team_works_with_a_generator():
+    # single pass: the games may only be iterated once
+    index = index_by_team(game for game in [HOME_WIN_REG, AWAY_WIN_OT])
+
+    assert index["TOR"] == (HOME_WIN_REG, AWAY_WIN_OT)
+
+
+def test_standings_are_cached_for_the_same_games():
+    games = (HOME_WIN_REG, AWAY_WIN_OT)
+    standings_for.cache_clear()
+
+    first = calculate_standings(list(games))
+    second = calculate_standings(list(games))
+
+    assert second is first
+    assert standings_for.cache_info().hits == 1
+
+
+def test_standings_cache_is_not_used_for_changed_games():
+    standings_for.cache_clear()
+
+    before = calculate_standings([HOME_WIN_REG])
+    after = calculate_standings([HOME_WIN_REG, AWAY_WIN_OT])
+
+    assert after is not before
+    assert {row["TEAM"]: row["GP"] for row in after}["TOR"] == 2

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import replace
-from functools import reduce
+from functools import lru_cache, reduce
 from types import MappingProxyType
 from typing import Literal
 
@@ -22,8 +22,18 @@ def teams_in(games: Iterable[Game]) -> tuple[str, ...]:
 
 
 def games_of_team(games: Iterable[Game], team: str) -> tuple[Game, ...]:
-    """Return all games the team played at home or away."""
+    """Return all games the team played at home or away (scans all games)."""
     return tuple(game for game in games if team in (game.home_team, game.away_team))
+
+
+def index_by_team(games: Iterable[Game]) -> dict[str, tuple[Game, ...]]:
+    """Group the games by team in a single pass (teams and games keep their order)."""
+    # the lists are local to this function, callers only see tuples
+    groups: dict[str, list[Game]] = {}
+    for game in games:
+        groups.setdefault(game.home_team, []).append(game)
+        groups.setdefault(game.away_team, []).append(game)
+    return {team: tuple(team_games) for team, team_games in groups.items()}
 
 
 def goals_for_and_against(game: Game, team: str) -> tuple[int, int]:
@@ -63,13 +73,14 @@ def add_game(record: TeamRecord, game: Game, team: str) -> TeamRecord:
     )
 
 
+def record_from_games(team_games: Iterable[Game], team: str) -> TeamRecord:
+    """Fold games the team played into one TeamRecord with reduce."""
+    return reduce(lambda record, game: add_game(record, game, team), team_games, TeamRecord())
+
+
 def team_record(games: Iterable[Game], team: str) -> TeamRecord:
-    """Fold all games of the team into one TeamRecord with reduce."""
-    return reduce(
-        lambda record, game: add_game(record, game, team),
-        games_of_team(games, team),
-        TeamRecord(),
-    )
+    """Fold all games of the team into one TeamRecord (other teams' games are skipped)."""
+    return record_from_games(games_of_team(games, team), team)
 
 
 def to_row(team: str, record: TeamRecord) -> StandingsRow:
@@ -94,8 +105,16 @@ def standings_sort_key(record: StandingsRow) -> tuple[int, int, int, int, str]:
     return -record["PTS"], -record["W"], -record["DIFF"], -record["GF"], record["TEAM"]
 
 
+@lru_cache(maxsize=8)
+def standings_for(games: tuple[Game, ...]) -> tuple[StandingsRow, ...]:
+    """Cached standings for a hashable tuple of games (index instead of one scan per team)."""
+    rows = map(
+        lambda entry: to_row(entry[0], record_from_games(entry[1], entry[0])),
+        index_by_team(games).items(),
+    )
+    return tuple(sorted(rows, key=standings_sort_key))
+
+
 def calculate_standings(games: Iterable[Game]) -> tuple[StandingsRow, ...]:
     """Calculate the standings sorted with NHL-style tiebreakers."""
-    games = tuple(games)
-    rows = map(lambda team: to_row(team, team_record(games, team)), teams_in(games))
-    return tuple(sorted(rows, key=standings_sort_key))
+    return standings_for(tuple(games))
