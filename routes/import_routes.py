@@ -20,10 +20,14 @@ def import_games():
         if not uploaded_file or not uploaded_file.filename:
             error_message = "Please select a CSV file."
         else:
-            content = uploaded_file.read().decode("utf-8")
-            accepted_games, rejected_rows = import_games_from_csv(content)
-            imported_games.extend(accepted_games)
-            accepted_count = len(accepted_games)
+            try:
+                content = uploaded_file.read().decode("utf-8-sig")
+            except UnicodeDecodeError:
+                error_message = "The file must be UTF-8 encoded."
+            else:
+                accepted_games, rejected_rows = import_games_from_csv(content)
+                imported_games.extend(accepted_games)
+                accepted_count = len(accepted_games)
 
     return render_template(
         "import.html",

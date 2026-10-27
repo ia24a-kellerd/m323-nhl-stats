@@ -22,7 +22,7 @@ REQUIRED_FIELDS = (
 
 def missing_fields(row: dict[str, str]) -> list[str]:
     """Return required fields that are missing or blank."""
-    return [field for field in REQUIRED_FIELDS if not row.get(field, "").strip()]
+    return [field for field in REQUIRED_FIELDS if not (row.get(field) or "").strip()]
 
 
 def parse_row(row: dict[str, str]) -> Game:
